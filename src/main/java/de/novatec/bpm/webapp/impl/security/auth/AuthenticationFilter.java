@@ -4,16 +4,18 @@ import static org.camunda.bpm.engine.authorization.Permissions.ACCESS;
 import static org.camunda.bpm.engine.authorization.Resources.APPLICATION;
 
 import java.io.IOException;
+import java.security.AccessControlContext;
+import java.security.AccessController;
 import java.security.Principal;
 import java.util.*;
 
+import javax.security.auth.Subject;
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 
 import org.camunda.bpm.cockpit.Cockpit;
 import org.camunda.bpm.engine.AuthorizationService;
 import org.camunda.bpm.engine.ProcessEngine;
-import org.camunda.bpm.engine.identity.Group;
 import org.camunda.bpm.engine.rest.spi.ProcessEngineProvider;
 import org.camunda.bpm.webapp.impl.security.SecurityActions;
 import org.camunda.bpm.webapp.impl.security.SecurityActions.SecurityAction;
@@ -76,11 +78,13 @@ public class AuthenticationFilter implements Filter {
                     // throw new InvalidRequestException(Status.BAD_REQUEST,
                     // "Process engine with name "+engineName+" does not exist");
                     // get user's groups
-                    final List<Group> groupList = processEngine.getIdentityService().createGroupQuery().groupMember(username).list();
+                    AccessControlContext acc = AccessController.getContext();
+                    Subject subject = Subject.getSubject(acc);
+                    Set<Principal> groupPrincipals = subject.getPrincipals();
                     // transform into array of strings:
                     List<String> groupIds = new ArrayList<String>();
-                    for (Group group : groupList) {
-                        groupIds.add(group.getId());
+                    for (Principal groupPrincipal : groupPrincipals) {
+                        groupIds.add(groupPrincipal.getName());
                     }
 
                     // check user's app authorizations
